@@ -8,3 +8,4 @@
 #### 07. Deep Learning
 #### 08. cs231n
 #### 09. cs224n
+#### 10. Pandas Tutorial
