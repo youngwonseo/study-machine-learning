@@ -2,7 +2,7 @@ import tensorflow as tf
 
 tf.app.flags.DEFINE_string('f', '', 'kernel')
 tf.app.flags.DEFINE_integer('batch_size', 64, 'batch size')
-tf.app.flags.DEFINE_integer('train_steps', 10000, 'train steps')
+tf.app.flags.DEFINE_integer('train_steps', 3000, 'train steps')
 tf.app.flags.DEFINE_float('dropout_width', 0.5, 'dropout width')
 tf.app.flags.DEFINE_integer('layer_size', 3, 'layer size')
 tf.app.flags.DEFINE_integer('hidden_size', 128, 'layer size')

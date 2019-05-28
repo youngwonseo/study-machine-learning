@@ -1,5 +1,5 @@
 import tensorflow as tf
-
+from configs import DEFINES
 
 def make_lstm_cell(mode, hiddenSize, index):
   cell = tf.nn.rnn_cell.BasicLSTMCell(hiddenSize, name="lstm"+str(index))
@@ -29,7 +29,7 @@ def model(features, labels, mode, params):
 
   if params['embedding'] == True:
     initializer = tf.contrib.layers.xavier_initializer()
-    embedding_decoder = tf.get_variable(name='embedding_encoder',
+    embedding_decoder = tf.get_variable(name='embedding_decoder',
                                           shape=[params['vocabulary_length'],
                                           params['embedding_size']],
                                           dtype=tf.float32,
@@ -50,7 +50,7 @@ def model(features, labels, mode, params):
     encoder_outputs, encoder_states = tf.nn.dynamic_rnn(cell=rnn_cell, inputs=embedding_encoder_batch, dtype=tf.float32)
 
 
-  with tf.variable_scrop('decoder_scope', reuse=tf.AUTO_REUSE):
+  with tf.variable_scope('decoder_scope', reuse=tf.AUTO_REUSE):
     if params['multilayer'] == True:
       decoder_cell_list = [make_lstm_cell(mode, params['hidden_size'],i) for i in range(params['layer_size'])]
       rnn_cell = tf.contrib.rnn.MultiRNNCell(decoder_cell_list)
@@ -58,7 +58,7 @@ def model(features, labels, mode, params):
       rnn_cell = make_lstm_cell(mode, params['hidden_size'], "")
 
     decoder_initial_state = encoder_states
-    decoder_outputs, decoder_states = tf.nn.dynamic_rnn(cell=rnn_cell, inputs=embedding_decoder_batch, inital_state=decoder_initial_state, dtype=tf.float32)
+    decoder_outputs, decoder_states = tf.nn.dynamic_rnn(cell=rnn_cell, inputs=embedding_decoder_batch, initial_state=decoder_initial_state, dtype=tf.float32)
   
   logits = tf.keras.layers.Dense(params['vocabulary_length'])(decoder_outputs)
 
@@ -72,7 +72,7 @@ def model(features, labels, mode, params):
     return tf.estimator.EstimatorSpec(mode, predictions=predictions)
   
   labels_ = tf.one_hot(labels, params['vocabulary_length'])
-  loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2, (logits=logits, labels=labels_))
+  loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=logits, labels=labels_))
 
   accuracy = tf.metrics.accuracy(labels=labels,predictions=predict,name='accOp')
 

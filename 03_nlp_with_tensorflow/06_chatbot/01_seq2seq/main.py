@@ -15,7 +15,11 @@ def main(self):
 
   word2idx, idx2word, vocabulary_length = data.load_vocabulary()
   train_input, train_label, eval_input, eval_label = data.load_data()
+  
+
+
   train_input_enc, train_input_enc_length = data.enc_processing(train_input, word2idx)
+
   train_input_dec, train_input_dec_length = data.dec_input_processing(train_label, word2idx)
   train_target_dec = data.dec_target_processing(train_label, word2idx)
 
@@ -31,13 +35,13 @@ def main(self):
     model_fn=ml.model,
     model_dir=DEFINES.check_point_path,
     params={
-     'hidden_size':DEFINES.hidden_size,
-     'layer_size':DEFINES.layer_size,
-     'learning_rate':DEFINES.learning_rate,
-     'vocabulary_length':DEFINES.vocabulary_length,
-     'embedding_size':DEFINES.embedding_size,
-     'embedding':DEFINES.embedding,
-     'multilayer':DEFINES.multilayer 
+     'hidden_size': DEFINES.hidden_size,
+     'layer_size': DEFINES.layer_size,
+     'learning_rate': DEFINES.learning_rate,
+     'vocabulary_length': vocabulary_length,
+     'embedding_size': DEFINES.embedding_size,
+     'embedding': DEFINES.embedding,
+     'multilayer': DEFINES.multilayer 
     }
   )
   classifier.train(input_fn=lambda:data.train_input_fn(

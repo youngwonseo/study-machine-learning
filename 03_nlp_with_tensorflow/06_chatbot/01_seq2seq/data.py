@@ -2,9 +2,9 @@ import tensorflow as tf
 import pandas as pd
 import numpy as np
 import re
+import os
 
-
-import tqdm
+from tqdm import tqdm
 from configs import DEFINES
 from sklearn.model_selection import train_test_split
 #from konlpy.tag import Okt
@@ -34,7 +34,7 @@ def load_data():
   return train_input, train_label, eval_input, eval_label
 
 def prepro_like_morphlized(data):
-  morph_analyzdr = Kkma()
+  morph_analyzer = Kkma()
   result_data = list()
   for seq in tqdm(data):
     morphlized_seq = " ".join(morph_analyzer.morphs(seq.replace(' ','')))
@@ -54,9 +54,9 @@ def enc_processing(value, dictionary):
     sequence_index = []
     for word in sequence.split():
       if dictionary.get(word) is not None:
-        sequence_index.extend([dictionary[word]])
+        sequence_index.extend( [dictionary[word]] )
       else:
-        sequence_index.extend([dictionary[UNK]])
+        sequence_index.extend( [dictionary[UNK]] )
     
     if len(sequence_index) > DEFINES.max_sequence_length:
       sequence_index = sequence_index[:DEFINES.max_sequence_length]
@@ -69,7 +69,7 @@ def enc_processing(value, dictionary):
 
 
 
-def dec_input_processing(value, dic):
+def dec_input_processing(value, dictionary):
   sequences_output_index = []
   sequences_length = []
 
@@ -84,14 +84,14 @@ def dec_input_processing(value, dic):
     if len(sequence_index) > DEFINES.max_sequence_length:
       sequence_index = sequence_index[:DEFINES.max_sequence_length]
     
-    sequence_length.append(len(sequence_index))
+    sequences_length.append(len(sequence_index))
     sequence_index += (DEFINES.max_sequence_length - len(sequence_index)) * [dictionary[PAD]]
     sequences_output_index.append(sequence_index)
   
   return np.asarray(sequences_output_index), sequences_length
 
 
-def dec_target_processing(value, dectionary):
+def dec_target_processing(value, dictionary):
   sequences_target_index = []
 
   if DEFINES.tokenize_as_morph:
@@ -106,7 +106,7 @@ def dec_target_processing(value, dectionary):
       sequence_index += [dictionary[END]]
     
     sequence_index += (DEFINES.max_sequence_length - len(sequence_index)) * [dictionary[PAD]]
-    sequence_target_index.append(sequence_index)
+    sequences_target_index.append(sequence_index)
 
   return np.asarray(sequences_target_index)
 
@@ -134,19 +134,25 @@ def data_tokenizer(data):
   for sentence in data:
     sentence = re.sub(CHANGE_FILTER, "", sentence)
     for word in sentence.split():
-      words.append(wored)
+      words.append(word)
   return [word for word in words if word]
 
 
 def load_vocabulary():
   vocabulary_list = []
+
+  
   if (not (os.path.exists(DEFINES.vocabulary_path))):
     if (os.path.exists(DEFINES.data_path)):
+      print("단어사전생성시작..")
+
       data_df = pd.read_csv(DEFINES.data_path, encoding='utf-8')
+      
       question, answer = list(data_df['Q']), list(data_df['A'])
       if DEFINES.tokenize_as_morph:
         question = prepro_like_morphlized(question)
         answer = prepro_like_morphlized(answer)
+      
       
       data = []
       data.extend(question)
@@ -155,14 +161,20 @@ def load_vocabulary():
       words = list(set(words))
       words[:0] = MARKER
 
-    with open(DEFINES.vocabulary_path, 'w') as vocabulary_file:
+    with open(DEFINES.vocabulary_path, 'w', encoding='utf-8') as vocabulary_file:
       for word in words:
         vocabulary_file.write(word + '\n')
+
   with open(DEFINES.vocabulary_path, 'r', encoding='utf-8') as vocabulary_file:
     for line in vocabulary_file:
       vocabulary_list.append(line.strip())
   
+  
+
+
   word2idx, idx2word = make_vocabulary(vocabulary_list)
+  print("단어사전생성완료 ," , len(word2idx))
+  return word2idx, idx2word, len(word2idx)
 
 def make_vocabulary(vocabulary_list):
   word2idx = {word: idx for idx, word in enumerate(vocabulary_list)}
@@ -182,7 +194,7 @@ def train_input_fn(train_input_enc, train_output_dec, train_target_dec, batch_si
 
 
 def eval_input_fn(eval_input_enc, eval_output_dec, eval_target_dec, batch_size):
-  dataset = tf.data.Dataset.from_tensor_slices((eval_input_enc, eval_input_dec, eval_target_dec))
+  dataset = tf.data.Dataset.from_tensor_slices((eval_input_enc, eval_output_dec, eval_target_dec))
   dataset = dataset.shuffle(buffer_size = len(eval_input_enc))
   assert batch_size is not None, "eval batchSize must not be None"
   dataset = dataset.batch(batch_size)
